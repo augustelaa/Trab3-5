@@ -1,5 +1,14 @@
 
+import com.sun.xml.internal.ws.util.StringUtils;
+import java.io.BufferedReader;
+import java.io.FileReader;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.Map;
 import javax.swing.JFileChooser;
+import javax.swing.JOptionPane;
 
 /*
  * To change this license header, choose License Headers in Project Properties.
@@ -12,11 +21,15 @@ import javax.swing.JFileChooser;
  * @author supero
  */
 public class Anagrama extends javax.swing.JFrame {
+    
+    HashMap<String, ArrayList<String>> mapa;
+
 
     /**
      * Creates new form Anagrama
      */
     public Anagrama() {
+        mapa = new HashMap<String, ArrayList<String>>();
         initComponents();
     }
 
@@ -32,6 +45,9 @@ public class Anagrama extends javax.swing.JFrame {
         carregar = new javax.swing.JButton();
         jScrollPane1 = new javax.swing.JScrollPane();
         resultado = new javax.swing.JTextArea();
+        jLabel1 = new javax.swing.JLabel();
+        nrpalavras = new javax.swing.JFormattedTextField();
+        buscar = new javax.swing.JButton();
 
         setDefaultCloseOperation(javax.swing.WindowConstants.EXIT_ON_CLOSE);
 
@@ -44,7 +60,20 @@ public class Anagrama extends javax.swing.JFrame {
 
         resultado.setColumns(20);
         resultado.setRows(5);
+        resultado.setEnabled(false);
         jScrollPane1.setViewportView(resultado);
+
+        jLabel1.setText("Nr de palavras superior a:");
+
+        nrpalavras.setFormatterFactory(new javax.swing.text.DefaultFormatterFactory(new javax.swing.text.NumberFormatter(new java.text.DecimalFormat("#0"))));
+
+        buscar.setText("Buscar");
+        buscar.setEnabled(false);
+        buscar.addActionListener(new java.awt.event.ActionListener() {
+            public void actionPerformed(java.awt.event.ActionEvent evt) {
+                buscarActionPerformed(evt);
+            }
+        });
 
         javax.swing.GroupLayout layout = new javax.swing.GroupLayout(getContentPane());
         getContentPane().setLayout(layout);
@@ -53,9 +82,15 @@ public class Anagrama extends javax.swing.JFrame {
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
                 .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 380, Short.MAX_VALUE)
+                    .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 681, Short.MAX_VALUE)
                     .addGroup(layout.createSequentialGroup()
                         .addComponent(carregar)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(jLabel1)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED)
+                        .addComponent(nrpalavras, javax.swing.GroupLayout.PREFERRED_SIZE, 56, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
+                        .addComponent(buscar)
                         .addGap(0, 0, Short.MAX_VALUE)))
                 .addContainerGap())
         );
@@ -63,9 +98,13 @@ public class Anagrama extends javax.swing.JFrame {
             layout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
             .addGroup(layout.createSequentialGroup()
                 .addContainerGap()
-                .addComponent(carregar)
+                .addGroup(layout.createParallelGroup(javax.swing.GroupLayout.Alignment.BASELINE)
+                    .addComponent(carregar)
+                    .addComponent(jLabel1)
+                    .addComponent(nrpalavras, javax.swing.GroupLayout.PREFERRED_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(buscar))
                 .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.UNRELATED)
-                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 244, Short.MAX_VALUE)
+                .addComponent(jScrollPane1, javax.swing.GroupLayout.DEFAULT_SIZE, 319, Short.MAX_VALUE)
                 .addContainerGap())
         );
 
@@ -73,8 +112,60 @@ public class Anagrama extends javax.swing.JFrame {
     }// </editor-fold>//GEN-END:initComponents
 
     private void carregarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_carregarActionPerformed
+        
         JFileChooser arquivo = new JFileChooser();
+        arquivo.setFileSelectionMode(JFileChooser.FILES_ONLY);
+        if (arquivo.showOpenDialog(null) != JFileChooser.APPROVE_OPTION) {
+            JOptionPane.showMessageDialog(this, "Deu ruim");
+            return;
+        }
+        buscar.setEnabled(true);
+        
+        try (BufferedReader br = new BufferedReader(new FileReader(arquivo.getSelectedFile()))) {
+            String text = null;
+            String chave = "";
+            while ((text = br.readLine()) != null) {
+                chave = "";
+                byte[] letras = text.getBytes();
+                Arrays.sort(letras);
+                chave = new String(letras);
+                
+                if (mapa.containsKey(chave)) {
+                    mapa.get(chave).add(text);
+                } else {
+                    ArrayList<String> lista = new ArrayList<String>();
+                    lista.add(text);
+                    mapa.put(chave, lista);
+                }
+            }
+        } catch (IOException exp) {
+            exp.printStackTrace();
+            JOptionPane.showMessageDialog(this, "Erro ao ler arquivo", "Erro", JOptionPane.ERROR_MESSAGE);
+        }
     }//GEN-LAST:event_carregarActionPerformed
+
+    private void buscarActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_buscarActionPerformed
+        String nrPalavrasText = nrpalavras.getText();
+        if (nrPalavrasText == null || nrPalavrasText.isEmpty()) {
+            JOptionPane.showMessageDialog(this, "Numero de palavras é invalido");
+            return;
+        }
+        int nrPalavras = Integer.parseInt(nrPalavrasText.trim());
+        if (nrPalavras <= 0) {
+            JOptionPane.showMessageDialog(this, "Numero de palavras é invalido");
+            return;
+        }
+        
+        resultado.setText("");
+        mapa.forEach((k,v) -> {
+            if (v.size() > nrPalavras) {                
+                String palavras = v.toString();
+                resultado.append(v.size() + " - ");
+                resultado.append(palavras);
+                resultado.append("\n");
+            }
+        });
+    }//GEN-LAST:event_buscarActionPerformed
 
     /**
      * @param args the command line arguments
@@ -112,8 +203,11 @@ public class Anagrama extends javax.swing.JFrame {
     }
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
+    private javax.swing.JButton buscar;
     private javax.swing.JButton carregar;
+    private javax.swing.JLabel jLabel1;
     private javax.swing.JScrollPane jScrollPane1;
+    private javax.swing.JFormattedTextField nrpalavras;
     private javax.swing.JTextArea resultado;
     // End of variables declaration//GEN-END:variables
 }
